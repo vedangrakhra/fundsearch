@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FundLens — Fund Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root {
+  --bg:#0d0f14; --surface:#13161e; --surface2:#1a1e28;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --text:#e8e6e0; --muted:#7a7870; --subtle:#2e3040;
+  --accent:#c9a96e; --accent2:#e8c98a;
+  --green:#5db88a; --red:#d4655a; --blue:#6b9fd4; --purple:#9b87c4;
+  --mono:'DM Mono',monospace; --serif:'Libre Baskerville',serif; --sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+.header{border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;background:var(--bg);z-index:100}
+.logo{font-family:var(--serif);font-size:18px;color:var(--accent);letter-spacing:.02em}
+.logo span{color:var(--muted);font-style:italic}
+.tab-btn{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .15s}
+.tab-btn:hover{color:var(--text);background:var(--surface)}
+.tab-btn.active{color:var(--accent);background:var(--surface2)}
+
+.main{padding:40px;max-width:1100px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+
+.search-hero{text-align:center;padding:60px 0 40px}
+.search-hero h1{font-family:var(--serif);font-size:36px;font-weight:400;margin-bottom:8px}
+.search-hero h1 em{color:var(--accent);font-style:italic}
+.search-hero p{color:var(--muted);font-size:14px;margin-bottom:32px}
+.search-box{display:flex;max-width:580px;margin:0 auto;border:1px solid var(--border2);border-radius:8px;background:var(--surface);overflow:hidden;transition:border-color .2s}
+.search-box:focus-within{border-color:var(--accent)}
+.search-box input{flex:1;background:none;border:none;padding:14px 18px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none}
+.search-box input::placeholder{color:var(--muted)}
+.search-box button{background:var(--accent);border:none;padding:0 22px;color:#0d0f14;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .15s;white-space:nowrap}
+.search-box button:hover{background:var(--accent2)}
+.search-box button:disabled{opacity:.4;cursor:not-allowed}
+
+.panel{max-width:580px;margin:20px auto 0;border-radius:8px;padding:18px 20px;display:none}
+.panel.visible{display:block}
+.panel-disambig{background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--blue)}
+.panel-archive{background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--accent)}
+.panel-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.panel-title.blue{color:var(--blue)}.panel-title.gold{color:var(--accent)}
+.panel-sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+
+.fund-option{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;transition:all .15s;background:var(--surface)}
+.fund-option:hover{border-color:var(--accent);background:var(--surface2)}
+.fund-option:last-child{margin-bottom:0}
+.fo-name{font-size:13px;font-weight:500;color:var(--text)}
+.fo-meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.fo-badge{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(201,169,110,.3);border-radius:4px;flex-shrink:0;margin-left:12px}
+
+.btn-row{display:flex;gap:8px}
+.btn-outline{background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all .15s}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-solid{background:var(--accent);border:1px solid var(--accent);border-radius:5px;color:#0d0f14;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all .15s}
+.btn-solid:hover{background:var(--accent2)}
+
+.loading-panel{max-width:580px;margin:32px auto 0;display:none;text-align:center}
+.loading-panel.visible{display:block}
+.loading-title{font-family:var(--serif);font-size:16px;color:var(--muted);margin-bottom:20px;font-style:italic}
+.loading-steps{list-style:none;text-align:left;max-width:360px;margin:0 auto}
+.loading-steps li{font-family:var(--mono);font-size:12px;color:var(--muted);padding:5px 0;display:flex;align-items:center;gap:10px;transition:color .3s}
+.loading-steps li.done{color:var(--green)}.loading-steps li.active{color:var(--accent)}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--subtle);flex-shrink:0;transition:background .3s}
+.loading-steps li.done .step-dot{background:var(--green)}
+.loading-steps li.active .step-dot{background:var(--accent);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.error-box{background:rgba(212,101,90,.08);border:1px solid rgba(212,101,90,.25);border-radius:8px;padding:14px 18px;color:var(--red);font-size:13px;margin-top:20px;max-width:580px;margin-left:auto;margin-right:auto;display:none}
+.error-box.visible{display:block}
+
+#reportView{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.report-header{border-bottom:1px solid var(--border);padding-bottom:24px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.report-fund-name{font-family:var(--serif);font-size:26px;font-weight:400;line-height:1.25;margin-bottom:8px}
+.report-meta{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.report-meta .gold{color:var(--accent)}
+.sector-tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(155,135,196,.15);color:var(--purple);border:1px solid rgba(155,135,196,.25);letter-spacing:.04em}
+.report-actions{display:flex;gap:8px;flex-shrink:0;align-items:center}
+
+.section-block{margin-bottom:28px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.section-head{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 20px}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.section-body{padding:20px;background:var(--surface)}
+
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric-chip{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.mc-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.mc-value{font-size:20px;font-weight:500;color:var(--text)}
+.mc-sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+.perf-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.perf-row:last-child{border-bottom:none}
+.perf-year{font-family:var(--mono);color:var(--muted);font-size:12px}
+.pos{color:var(--green);font-weight:500;font-family:var(--mono)}
+.neg{color:var(--red);font-weight:500;font-family:var(--mono)}
+
+.holding-row{display:grid;grid-template-columns:1fr 60px 160px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.holding-row:last-child{border-bottom:none}
+.h-name{font-weight:500;font-size:13px}
+.h-sector{font-size:11px;color:var(--muted);margin-top:1px;font-family:var(--mono)}
+.h-weight{font-family:var(--mono);font-size:13px;color:var(--accent);text-align:right}
+.bar-track{height:4px;background:var(--surface2);border-radius:2px}
+.bar-fill{height:4px;border-radius:2px;background:var(--accent)}
+
+.geo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.geo-chip{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.geo-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.geo-value{font-size:22px;font-weight:500;color:var(--text);margin-top:2px}
+
+.bb-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bb-col-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.bull-title{color:var(--green)}.bear-title{color:var(--red)}
+.bb-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5;color:var(--muted)}
+.bb-item:last-child{border-bottom:none}
+.bb-icon{font-size:12px;flex-shrink:0;padding-top:2px}
+
+.verdict-block{border-left:3px solid var(--accent);padding-left:16px;font-size:13px;color:var(--muted);line-height:1.8}
+.prose{font-size:13px;color:var(--muted);line-height:1.8}
+.report-note{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--muted);margin-top:14px;font-family:var(--mono)}
+
+.archive-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.archive-header h2{font-family:var(--serif);font-size:24px;font-weight:400}
+.archive-controls{display:flex;gap:8px;align-items:center}
+.archive-search-input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;width:190px;transition:border-color .2s}
+.archive-search-input:focus{border-color:var(--accent)}
+.archive-search-input::placeholder{color:var(--muted)}
+.sector-filter{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;cursor:pointer;letter-spacing:.04em;color:var(--muted)}
+.archive-list{display:flex;flex-direction:column;gap:10px}
+.archive-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;cursor:pointer;transition:border-color .15s,background .15s}
+.archive-item:hover{border-color:var(--accent);background:var(--surface2)}
+.archive-item-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px}
+.archive-item-meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.archive-item-meta .gold{color:var(--accent)}
+.archive-item-actions{display:flex;gap:8px}
+.archive-empty{text-align:center;padding:60px 0;color:var(--muted);font-family:var(--serif);font-style:italic;font-size:15px}
+
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--green);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--text);opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;z-index:200;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">FundLens <span>/ Research</span></div>
+  <nav style="display:flex;gap:4px">
+    <button class="tab-btn active" id="tabSearch" onclick="switchView('search')">Search</button>
+    <button class="tab-btn" id="tabArchive" onclick="switchView('archive')">Archive</button>
+  </nav>
+</header>
+
+<main class="main">
+
+  <!-- SEARCH VIEW -->
+  <div id="searchView" class="view active">
+    <div class="search-hero">
+      <h1>Research any <em>fund</em></h1>
+      <p>Type a fund name — we'll identify it, then generate a full research brief automatically.</p>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="e.g. Pictet Clean Energy, iShares World, Fundsmith…" autocomplete="off"/>
+        <button id="searchBtn" onclick="handleSearch()">Search →</button>
+      </div>
+    </div>
+
+    <!-- Disambiguation panel -->
+    <div class="panel panel-disambig" id="disambigPanel">
+      <div class="panel-title blue">Multiple funds found</div>
+      <div class="panel-sub" id="disambigSub"></div>
+      <div id="disambigOptions"></div>
+    </div>
+
+    <!-- Archive exists panel -->
+    <div class="panel panel-archive" id="archivePanel">
+      <div class="panel-title gold">Report already in archive</div>
+      <p class="panel-sub" id="archivePanelText"></p>
+      <div class="btn-row">
+        <button class="btn-outline" onclick="viewArchivedReport()">View archived</button>
+        <button class="btn-solid" onclick="generateFresh()">Generate fresh</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-panel" id="loadingPanel">
+      <p class="loading-title" id="loadingTitle">Researching fund…</p>
+      <ul class="loading-steps">
+        <li id="step0"><span class="step-dot"></span>Identifying fund &amp; verifying details</li>
+        <li id="step1"><span class="step-dot"></span>Retrieving performance history</li>
+        <li id="step2"><span class="step-dot"></span>Analysing top holdings</li>
+        <li id="step3"><span class="step-dot"></span>Mapping geographic allocation</li>
+        <li id="step4"><span class="step-dot"></span>Building bull &amp; bear case</li>
+        <li id="step5"><span class="step-dot"></span>Compiling &amp; saving to archive</li>
+      </ul>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- REPORT VIEW -->
+  <div id="reportView" class="view">
+    <div class="report-header">
+      <div>
+        <div class="report-fund-name" id="reportFundName"></div>
+        <div class="report-meta">
+          Generated <span class="gold" id="reportDate"></span>
+          &nbsp;·&nbsp; Shared archive
+          &nbsp;·&nbsp; <span id="reportSectorTag" class="sector-tag"></span>
+        </div>
+      </div>
+      <div class="report-actions">
+        <button class="btn-outline" onclick="exportPDF()">↓ PDF</button>
+        <button class="btn-outline" onclick="switchView('search')">← Search</button>
+        <button class="btn-outline" onclick="switchView('archive')">Archive</button>
+      </div>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+
+  <!-- ARCHIVE VIEW -->
+  <div id="archiveView" class="view">
+    <div class="archive-header">
+      <h2>Shared Archive</h2>
+      <div class="archive-controls">
+        <select class="sector-filter" id="sectorFilter" onchange="renderArchive()">
+          <option value="">All sectors</option>
+        </select>
+        <input type="text" class="archive-search-input" id="archiveSearch" placeholder="Filter funds…" oninput="renderArchive()"/>
+      </div>
+    </div>
+    <div class="archive-list" id="archiveList"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════
+// STORAGE
+// ═══════════════════════
+const ARCHIVE_KEY = 'fundlens-v2-archive';
+
+async function loadArchive() {
+  try { const r = await window.storage.get(ARCHIVE_KEY,true); return r ? JSON.parse(r.value) : []; }
+  catch { return []; }
+}
+async function saveArchive(arr) {
+  try { await window.storage.set(ARCHIVE_KEY, JSON.stringify(arr), true); } catch(e){console.error(e);}
+}
+async function addToArchive(entry) {
+  const arch = await loadArchive();
+  const filtered = arch.filter(e => norm(e.name) !== norm(entry.name));
+  filtered.unshift(entry);
+  await saveArchive(filtered);
+}
+async function findInArchive(name) {
+  const arch = await loadArchive();
+  return arch.find(e => norm(e.name) === norm(name)) || null;
+}
+function norm(s){ return (s||'').toLowerCase().trim().replace(/\s+/g,' '); }
+
+// ═══════════════════════
+// STATE
+// ═══════════════════════
+let pendingArchivedEntry = null;
+let pendingSearch = '';
+
+// ═══════════════════════
+// VIEW SWITCHING
+// ═══════════════════════
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(name+'View').classList.add('active');
+  if(name==='search'||name==='report') document.getElementById('tabSearch').classList.add('active');
+  if(name==='archive'){ document.getElementById('tabArchive').classList.add('active'); renderArchive(); }
+}
+
+// ═══════════════════════
+// SEARCH HANDLER
+// ═══════════════════════
+document.getElementById('searchInput').addEventListener('keydown', e=>{ if(e.key==='Enter') handleSearch(); });
+
+async function handleSearch() {
+  const raw = document.getElementById('searchInput').value.trim();
+  if (!raw) return;
+  pendingSearch = raw;
+  resetPanels();
+  setSearchEnabled(false);
+
+  // Phase 1: identify/disambiguate
+  showLoadingMsg('Identifying fund…');
+  try {
+    const candidates = await identifyFund(raw);
+    hideLoading();
+    setSearchEnabled(true);
+
+    if (!candidates || !candidates.length) {
+      showError(`No fund found matching "${raw}". Try checking the spelling or adding the manager name (e.g. "Vanguard S&P 500").`);
+      return;
+    }
+    if (candidates.length === 1) {
+      await proceedWithFund(candidates[0].fullName);
+    } else {
+      showDisambig(raw, candidates);
+    }
+  } catch(err) {
+    hideLoading();
+    setSearchEnabled(true);
+    showError('Search failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════
+// PHASE 1: IDENTIFY
+// ═══════════════════════
+async function identifyFund(query) {
+  const raw = await callClaude(`
+You are a fund identification assistant. The user typed: "${query}"
+
+Search the web to identify real investment funds matching this query.
+
+Return ONLY a valid JSON array — no intro, no explanation, no markdown. Start with [ and end with ].
+
+[
+  {
+    "fullName": "Exact official full fund name",
+    "issuer": "Asset manager company name",
+    "isin": "ISIN or empty string",
+    "category": "e.g. Equity - Clean Energy",
+    "confidence": "high or medium"
+  }
+]
+
+Rules:
+- If query matches one fund clearly: return just that one with confidence "high"
+- If query is ambiguous: return up to 5 plausible matches
+- If no match found: return []
+- Return NOTHING except the JSON array
+`);
+  const clean = extractFirstJSON(raw, true);
+  return JSON.parse(clean);
+}
+
+// ═══════════════════════
+// DISAMBIGUATION UI
+// ═══════════════════════
+function showDisambig(query, opts) {
+  document.getElementById('disambigSub').textContent =
+    `Found ${opts.length} funds matching "${query}" — select the one you meant:`;
+  document.getElementById('disambigOptions').innerHTML = opts.map(opt => `
+    <div class="fund-option" onclick="selectFund(${JSON.stringify(opt.fullName)})">
+      <div>
+        <div class="fo-name">${escHtml(opt.fullName)}</div>
+        <div class="fo-meta">${escHtml(opt.issuer)} · ${escHtml(opt.category)}${opt.isin?' · '+opt.isin:''}</div>
+      </div>
+      <div class="fo-badge">${opt.confidence==='high'?'Best match':'Possible'}</div>
+    </div>
+  `).join('');
+  document.getElementById('disambigPanel').classList.add('visible');
+}
+
+async function selectFund(fullName) {
+  document.getElementById('disambigPanel').classList.remove('visible');
+  document.getElementById('searchInput').value = fullName;
+  await proceedWithFund(fullName);
+}
+
+// ═══════════════════════
+// ARCHIVE CHECK
+// ═══════════════════════
+async function proceedWithFund(fullName) {
+  const existing = await findInArchive(fullName);
+  if (existing) {
+    pendingArchivedEntry = existing;
+    const d = new Date(existing.date);
+    const fmt = d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('archivePanelText').textContent =
+      `A report for "${existing.name}" was generated on ${fmt}. View it or create a fresh one?`;
+    document.getElementById('archivePanel').classList.add('visible');
+  } else {
+    generateReport(fullName);
+  }
+}
+
+function viewArchivedReport(){ document.getElementById('archivePanel').classList.remove('visible'); if(pendingArchivedEntry) showReport(pendingArchivedEntry); }
+function generateFresh(){ document.getElementById('archivePanel').classList.remove('visible'); generateReport(pendingArchivedEntry?.name||pendingSearch); }
+
+// ═══════════════════════
+// PHASE 2: GENERATE REPORT
+// ═══════════════════════
+async function generateReport(fundName) {
+  resetPanels();
+  setSearchEnabled(false);
+  showFullLoading(fundName);
+
+  const timings = [0,2200,4000,5800,7400,9000];
+  timings.forEach((t,i)=>setTimeout(()=>markStep(i), t));
+
+  try {
+    const raw = await callClaude(buildReportPrompt(fundName));
+    const clean = extractFirstJSON(raw, false);
+    const parsed = JSON.parse(clean);
+
+    hideLoading();
+    setSearchEnabled(true);
+
+    const entry = {
+      name: parsed.fundName || fundName,
+      date: new Date().toISOString(),
+      sector: parsed.sector || 'Other',
+      data: parsed
+    };
+
+    await addToArchive(entry);
+    showReport(entry);
+    showToast('Report saved to shared archive');
+
+  } catch(err) {
+    hideLoading();
+    setSearchEnabled(true);
+    showError('Could not generate report: ' + err.message);
+  }
+}
+
+function buildReportPrompt(fundName) {
+  return `You are an expert fund research analyst. Research the investment fund: "${fundName}".
+
+Use web search to find accurate, current information.
+
+CRITICAL OUTPUT RULES — follow these exactly:
+1. Your response must begin with { and end with } — nothing before, nothing after
+2. No markdown, no code fences, no explanation text of any kind
+3. Do not say "I will" or "Let me" — just output the JSON directly
+4. Use "N/A" for any field where data is unavailable
+
+Return this exact JSON structure:
+
+{
+  "fundName": "Full official fund name",
+  "issuer": "Asset management company name",
+  "sector": "One of: Clean Energy | Emerging Markets | Technology | Fixed Income | Multi-Asset | Healthcare | Real Estate | Commodities | Global Equity | Other",
+  "overview": "2-3 sentence summary of the fund strategy and thesis.",
+  "keyMetrics": [
+    {"label": "Launched", "value": "YYYY", "sub": "X years track record"},
+    {"label": "10yr Annualised", "value": "X.X%", "sub": "Share class / currency"},
+    {"label": "No. Holdings", "value": "~XX", "sub": "Concentration level"},
+    {"label": "Manager AUM", "value": "$XXB", "sub": "As of latest data"}
+  ],
+  "performance": [
+    {"year": "2024", "return": "+12.1%", "positive": true},
+    {"year": "2023", "return": "+23.9%", "positive": true},
+    {"year": "2022", "return": "-21.2%", "positive": false},
+    {"year": "2021", "return": "+21.9%", "positive": true},
+    {"year": "2020", "return": "+40.6%", "positive": true},
+    {"year": "2019", "return": "+38.2%", "positive": true},
+    {"year": "2018", "return": "-14.1%", "positive": false},
+    {"year": "2017", "return": "+10.2%", "positive": true}
+  ],
+  "performanceNote": "One sentence on share class and data source caveat.",
+  "topHoldings": [
+    {"name": "Company Name", "sector": "Sector theme", "weight": "6.8%", "weightNum": 6.8},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "5.7%", "weightNum": 5.7},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "4.6%", "weightNum": 4.6},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "4.5%", "weightNum": 4.5},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "4.4%", "weightNum": 4.4},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "4.3%", "weightNum": 4.3},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "4.2%", "weightNum": 4.2},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "3.9%", "weightNum": 3.9},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "3.8%", "weightNum": 3.8},
+    {"name": "Company Name", "sector": "Sector theme", "weight": "3.7%", "weightNum": 3.7}
+  ],
+  "geoAllocation": [
+    {"region": "United States", "pct": "68.9%"},
+    {"region": "Europe", "pct": "23.4%"},
+    {"region": "Asia Pacific", "pct": "5.0%"},
+    {"region": "Other", "pct": "2.7%"}
+  ],
+  "geoNote": "One sentence on geographic concentration versus sector peers.",
+  "bullCase": [
+    "Specific reason 1 to invest with evidence or rationale",
+    "Specific reason 2",
+    "Specific reason 3",
+    "Specific reason 4",
+    "Specific reason 5"
+  ],
+  "bearCase": [
+    "Specific risk 1 with context",
+    "Specific risk 2",
+    "Specific risk 3",
+    "Specific risk 4",
+    "Specific risk 5"
+  ],
+  "managerOverview": "3-4 sentences covering: asset manager history and reputation, total AUM, named fund managers for this specific fund, their backgrounds and expertise.",
+  "investmentVerdict": "2-3 sentences on who this fund suits (time horizon, risk tolerance, goals) and who should be cautious. Be direct and specific."
+}`;
+}
+
+// ═══════════════════════
+// CLAUDE API
+// ═══════════════════════
+async function callClaude(prompt) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `API ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+}
+
+// ═══════════════════════
+// ROBUST JSON EXTRACTOR
+// ═══════════════════════
+function extractFirstJSON(raw, isArray) {
+  if (!raw) throw new Error('Empty API response');
+  // Strip markdown fences
+  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  if (isArray) {
+    const a = s.indexOf('['), b = s.lastIndexOf(']');
+    if (a !== -1 && b !== -1) return s.slice(a, b+1);
+    // Maybe it returned an object wrapping an array
+    const o = s.indexOf('{'), oe = s.lastIndexOf('}');
+    if (o !== -1 && oe !== -1) return s.slice(o, oe+1);
+    throw new Error('No JSON array found. Got: ' + s.slice(0,150));
+  } else {
+    const o = s.indexOf('{'), oe = s.lastIndexOf('}');
+    if (o !== -1 && oe !== -1) return s.slice(o, oe+1);
+    throw new Error('No JSON object found. Got: ' + s.slice(0,150));
+  }
+}
+
+// ═══════════════════════
+// REPORT RENDERING
+// ═══════════════════════
+function showReport(entry) {
+  const d = new Date(entry.date);
+  const fmt = d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) +
+    ' at ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('reportFundName').textContent = entry.name;
+  document.getElementById('reportDate').textContent = fmt;
+  const st = entry.sector || entry.data?.sector || '';
+  const stEl = document.getElementById('reportSectorTag');
+  stEl.textContent = st;
+  stEl.style.display = st ? '' : 'none';
+  document.getElementById('reportBody').innerHTML = renderReportHTML(entry.data);
+  switchView('report');
+}
+
+function renderReportHTML(d) {
+  if (!d) return '<p class="prose">No data available.</p>';
+  const maxW = d.topHoldings?.length ? Math.max(...d.topHoldings.map(h=>+(h.weightNum||0))) : 10;
+  const e = escHtml;
+
+  return `
+  ${d.overview?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Strategy Overview</span></div>
+    <div class="section-body"><div class="prose">${e(d.overview)}</div></div>
+  </div>`:''}
+
+  ${d.keyMetrics?.length?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Key Metrics</span></div>
+    <div class="section-body">
+      <div class="metrics-row">
+        ${d.keyMetrics.map(m=>`
+        <div class="metric-chip">
+          <div class="mc-label">${e(m.label)}</div>
+          <div class="mc-value">${e(m.value)}</div>
+          <div class="mc-sub">${e(m.sub||'')}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`:''}
+
+  ${d.performance?.length?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Performance History</span></div>
+    <div class="section-body">
+      <div class="perf-grid">
+        ${d.performance.map(p=>`
+        <div class="perf-row">
+          <span class="perf-year">${e(p.year)}</span>
+          <span class="${p.positive?'pos':'neg'}">${e(p.return)}</span>
+        </div>`).join('')}
+      </div>
+      ${d.performanceNote?`<div class="report-note">${e(d.performanceNote)}</div>`:''}
+    </div>
+  </div>`:''}
+
+  ${d.topHoldings?.length?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Top Holdings</span></div>
+    <div class="section-body">
+      <div class="holding-row" style="padding-bottom:6px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Company</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;letter-spacing:.08em;text-transform:uppercase">Weight</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Allocation</span>
+      </div>
+      ${d.topHoldings.map(h=>`
+      <div class="holding-row">
+        <div><div class="h-name">${e(h.name)}</div><div class="h-sector">${e(h.sector)}</div></div>
+        <div class="h-weight">${e(h.weight)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(((h.weightNum||0)/maxW)*100)}%"></div></div>
+      </div>`).join('')}
+    </div>
+  </div>`:''}
+
+  ${d.geoAllocation?.length?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Geographic Allocation</span></div>
+    <div class="section-body">
+      <div class="geo-grid">
+        ${d.geoAllocation.map(g=>`
+        <div class="geo-chip">
+          <div class="geo-label">${e(g.region)}</div>
+          <div class="geo-value">${e(g.pct)}</div>
+        </div>`).join('')}
+      </div>
+      ${d.geoNote?`<div class="prose" style="margin-top:14px;font-size:12px">${e(d.geoNote)}</div>`:''}
+    </div>
+  </div>`:''}
+
+  ${(d.bullCase?.length||d.bearCase?.length)?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Bull / Bear Case</span></div>
+    <div class="section-body">
+      <div class="bb-grid">
+        <div>
+          <div class="bb-col-title bull-title">Bull case — reasons to invest</div>
+          ${(d.bullCase||[]).map(b=>`<div class="bb-item"><span class="bb-icon" style="color:var(--green)">✓</span><span>${e(b)}</span></div>`).join('')}
+        </div>
+        <div>
+          <div class="bb-col-title bear-title">Bear case — risks to watch</div>
+          ${(d.bearCase||[]).map(b=>`<div class="bb-item"><span class="bb-icon" style="color:var(--red)">✗</span><span>${e(b)}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`:''}
+
+  ${d.managerOverview?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Fund Manager Overview</span></div>
+    <div class="section-body"><div class="prose">${e(d.managerOverview)}</div></div>
+  </div>`:''}
+
+  ${d.investmentVerdict?`
+  <div class="section-block">
+    <div class="section-head"><span class="section-label">Investment Verdict</span></div>
+    <div class="section-body"><div class="verdict-block">${e(d.investmentVerdict)}</div></div>
+  </div>`:''}
+  `;
+}
+
+// ═══════════════════════
+// PDF EXPORT
+// ═══════════════════════
+async function exportPDF() {
+  const name = document.getElementById('reportFundName').textContent || 'FundReport';
+  showToast('Generating PDF…');
+  try {
+    await html2pdf().set({
+      margin:[12,14],
+      filename: name.replace(/[^a-z0-9]/gi,'_')+'_FundLens.pdf',
+      image:{type:'jpeg',quality:.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#0d0f14'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+    }).from(document.getElementById('reportBody')).save();
+    showToast('PDF downloaded ✓');
+  } catch(e){ showToast('PDF failed: '+e.message); }
+}
+
+// ═══════════════════════
+// ARCHIVE
+// ═══════════════════════
+async function renderArchive() {
+  const archive = await loadArchive();
+  const filter = (document.getElementById('archiveSearch')?.value||'').toLowerCase().trim();
+  const sectorF = document.getElementById('sectorFilter')?.value||'';
+
+  // Update sector dropdown
+  const sectors = [...new Set(archive.map(e=>e.sector||e.data?.sector||'Other'))].sort();
+  const sel = document.getElementById('sectorFilter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All sectors</option>' +
+    sectors.map(s=>`<option value="${escHtml(s)}" ${s===prev?'selected':''}>${escHtml(s)}</option>`).join('');
+
+  const filtered = archive.filter(e=>{
+    const t = !filter||(e.name||'').toLowerCase().includes(filter);
+    const s = !sectorF||(e.sector||e.data?.sector||'Other')===sectorF;
+    return t&&s;
+  });
+
+  const list = document.getElementById('archiveList');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="archive-empty">${filter||sectorF?'No reports match your filters.':'No reports yet — search for a fund to get started.'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(entry=>{
+    const idx = archive.indexOf(entry);
+    const d = new Date(entry.date);
+    const fmt = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const tm = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const sector = entry.sector||entry.data?.sector||'';
+    return `
+    <div class="archive-item" onclick="openArchivedReport(${idx})">
+      <div>
+        <div class="archive-item-name">${escHtml(entry.name)}</div>
+        <div class="archive-item-meta">
+          ${escHtml(entry.data?.issuer||'Fund')}
+          ${sector?`<span class="sector-tag">${escHtml(sector)}</span>`:''}
+          <span class="gold">${fmt} · ${tm}</span>
+        </div>
+      </div>
+      <div class="archive-item-actions" onclick="event.stopPropagation()">
+        <button class="btn-outline" onclick="openArchivedReport(${idx})">View</button>
+        <button class="btn-outline" style="color:var(--red);border-color:rgba(212,101,90,.3)" onclick="deleteReport(${idx},event)">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openArchivedReport(idx) {
+  const arch = await loadArchive();
+  if (arch[idx]) showReport(arch[idx]);
+}
+async function deleteReport(idx,ev) {
+  ev?.stopPropagation();
+  const arch = await loadArchive();
+  const name = arch[idx]?.name;
+  arch.splice(idx,1);
+  await saveArchive(arch);
+  renderArchive();
+  showToast(`Deleted "${name}"`);
+}
+
+// ═══════════════════════
+// UI HELPERS
+// ═══════════════════════
+function resetPanels(){
+  ['disambigPanel','archivePanel'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  hideLoading(); hideError();
+}
+function showLoadingMsg(msg){
+  document.getElementById('loadingTitle').textContent=msg;
+  document.getElementById('loadingPanel').classList.add('visible');
+}
+function showFullLoading(name){
+  document.getElementById('loadingTitle').textContent=`Researching ${name}…`;
+  document.getElementById('loadingPanel').classList.add('visible');
+  for(let i=0;i<6;i++){ const li=document.getElementById('step'+i); if(li){li.classList.remove('active','done');} }
+  markStep(0);
+}
+function markStep(i){
+  for(let j=0;j<i;j++){ const li=document.getElementById('step'+j); if(li){li.classList.remove('active');li.classList.add('done');} }
+  const li=document.getElementById('step'+i); if(li){li.classList.remove('done');li.classList.add('active');}
+}
+function hideLoading(){ document.getElementById('loadingPanel').classList.remove('visible'); }
+function setSearchEnabled(on){ document.getElementById('searchBtn').disabled=!on; document.getElementById('searchInput').disabled=!on; }
+function showError(msg){ const b=document.getElementById('errorBox'); b.textContent=msg; b.classList.add('visible'); }
+function hideError(){ document.getElementById('errorBox').classList.remove('visible'); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
