@@ -541,6 +541,7 @@ async function callClaude(prompt) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
+      system: 'You are a financial data API. You output only raw JSON — no prose, no markdown, no preamble, no explanation before or after. Your entire response must be valid JSON starting with { or [.',
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       messages: [{ role: 'user', content: prompt }]
     })
