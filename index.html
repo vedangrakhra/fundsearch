@@ -441,11 +441,7 @@ async function generateReport(fundName) {
   timings.forEach((t,i)=>setTimeout(()=>markStep(i), t));
 
   try {
-    // Step A: research in plain text
-    const research = await callClaude(buildResearchPrompt(fundName));
-
-    // Step B: convert research to strict JSON
-    const raw = await callClaudeJSON(buildJsonPrompt(fundName, research));
+    const raw = await callClaude(buildReportPrompt(fundName));
     const clean = extractFirstJSON(raw, false);
     const parsed = JSON.parse(clean);
 
@@ -470,82 +466,16 @@ async function generateReport(fundName) {
   }
 }
 
-function buildResearchPrompt(fundName) {
-  return `Research the investment fund: "${fundName}".
+function buildReportPrompt(fundName) {
+  return `Search the web for data on the investment fund: "${fundName}". Find: top 10 holdings (individual company names), geographic allocation, annual returns 2017-2024, key metrics, strategy, manager info.
 
-Use web search to find:
-1. Search "${fundName} top holdings" and "${fundName} Morningstar portfolio" — find the actual individual stock/company names in the portfolio (e.g. Vestas Wind Systems, Schneider Electric, Eaton Corp). Never use sector descriptions as holding names.
-2. Search "${fundName} factsheet" for geographic allocation percentages by country/region
-3. Annual performance returns for 2017-2024
-4. Key metrics: launch year, 10yr annualised return, number of holdings, manager AUM
-5. Fund strategy overview, manager background, bull/bear case
+Respond with ONLY a JSON object. No text before or after. Start your response with { and end with }.
 
-Write a thorough research summary covering all of the above with specific numbers and company names.`;
-}
-
-function buildJsonPrompt(fundName, research) {
-  return `Convert this fund research into the exact JSON format below. Use only the data from the research — do not invent data.
-
-RESEARCH:
-${research}
-
-OUTPUT RULES:
-- Output ONLY the JSON object, nothing else
-- No prose before or after
-- All string values must be properly escaped
-- Use "N/A" only if data is genuinely missing from the research above
-
-JSON FORMAT:
-{
-  "fundName": "Full official fund name",
-  "issuer": "Asset management company name",
-  "sector": "One of: Clean Energy | Emerging Markets | Technology | Fixed Income | Multi-Asset | Healthcare | Real Estate | Commodities | Global Equity | Other",
-  "overview": "2-3 sentence strategy summary",
-  "keyMetrics": [
-    {"label": "Launched", "value": "YYYY", "sub": "X years track record"},
-    {"label": "10yr Annualised", "value": "X.X%", "sub": "Share class / currency"},
-    {"label": "No. Holdings", "value": "~XX", "sub": "Concentration level"},
-    {"label": "Manager AUM", "value": "$XXB", "sub": "As of latest data"}
-  ],
-  "performance": [
-    {"year": "2024", "return": "+12.1%", "positive": true},
-    {"year": "2023", "return": "+8.5%", "positive": true},
-    {"year": "2022", "return": "-5.2%", "positive": false},
-    {"year": "2021", "return": "+15.3%", "positive": true},
-    {"year": "2020", "return": "+22.1%", "positive": true},
-    {"year": "2019", "return": "+18.4%", "positive": true},
-    {"year": "2018", "return": "-8.1%", "positive": false},
-    {"year": "2017", "return": "+12.0%", "positive": true}
-  ],
-  "performanceNote": "One sentence on share class and data source",
-  "topHoldings": [
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "6.8%", "weightNum": 6.8},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "5.7%", "weightNum": 5.7},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.6%", "weightNum": 4.6},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.5%", "weightNum": 4.5},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.4%", "weightNum": 4.4},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.3%", "weightNum": 4.3},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.2%", "weightNum": 4.2},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.9%", "weightNum": 3.9},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.8%", "weightNum": 3.8},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.7%", "weightNum": 3.7}
-  ],
-  "geoAllocation": [
-    {"region": "United States", "pct": "68.9%"},
-    {"region": "Europe", "pct": "23.4%"},
-    {"region": "Asia Pacific", "pct": "5.0%"},
-    {"region": "Other", "pct": "2.7%"}
-  ],
-  "geoNote": "One sentence on geographic concentration",
-  "bullCase": ["Reason 1","Reason 2","Reason 3","Reason 4","Reason 5"],
-  "bearCase": ["Risk 1","Risk 2","Risk 3","Risk 4","Risk 5"],
-  "managerOverview": "3-4 sentences on asset manager history, AUM, named fund managers and their backgrounds",
-  "investmentVerdict": "2-3 sentences on who this fund suits and who should be cautious"
-}`;
+{"fundName":"string","issuer":"string","sector":"Clean Energy|Emerging Markets|Technology|Fixed Income|Multi-Asset|Healthcare|Real Estate|Commodities|Global Equity|Other","overview":"string","keyMetrics":[{"label":"Launched","value":"YYYY","sub":"string"},{"label":"10yr Annualised","value":"X.X%","sub":"string"},{"label":"No. Holdings","value":"~XX","sub":"string"},{"label":"Manager AUM","value":"$XXB","sub":"string"}],"performance":[{"year":"2024","return":"+X.X%","positive":true},{"year":"2023","return":"+X.X%","positive":true},{"year":"2022","return":"-X.X%","positive":false},{"year":"2021","return":"+X.X%","positive":true},{"year":"2020","return":"+X.X%","positive":true},{"year":"2019","return":"+X.X%","positive":true},{"year":"2018","return":"-X.X%","positive":false},{"year":"2017","return":"+X.X%","positive":true}],"performanceNote":"string","topHoldings":[{"name":"Company Name","sector":"Industry","weight":"X.X%","weightNum":0.0}],"geoAllocation":[{"region":"string","pct":"XX%"}],"geoNote":"string","bullCase":["string","string","string","string","string"],"bearCase":["string","string","string","string","string"],"managerOverview":"string","investmentVerdict":"string"}`;
 }
 
 // ═══════════════════════
-// CLAUDE API (with web search)
+// CLAUDE API
 // ═══════════════════════
 async function callClaude(prompt) {
   const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
@@ -553,7 +483,8 @@ async function callClaude(prompt) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
+      max_tokens: 4000,
+      system: 'You are a financial data API. Always respond with only a valid JSON object. Never include any text, explanation, or markdown outside the JSON.',
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       messages: [{ role: 'user', content: prompt }]
     })
@@ -566,31 +497,6 @@ async function callClaude(prompt) {
   if (!data.content) throw new Error(data.error?.message || 'Empty response');
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
   if (!text) throw new Error('No text in response');
-  return text;
-}
-
-// ═══════════════════════
-// CLAUDE API (JSON only, no web search)
-// ═══════════════════════
-async function callClaudeJSON(prompt) {
-  const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      system: 'You are a JSON formatter. Output only a valid JSON object. No prose, no markdown, no explanation. Start with { and end with }.',
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  if (!resp.ok) {
-    const e = await resp.json().catch(()=>({}));
-    throw new Error(e.error?.message || `API ${resp.status}`);
-  }
-  const data = await resp.json();
-  if (!data.content) throw new Error(data.error?.message || 'Empty response');
-  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
-  if (!text) throw new Error('No text in JSON response');
   return text;
 }
 
