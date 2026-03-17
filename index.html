@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
-a
+
 .header{border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;background:var(--bg);z-index:100}
 .logo{font-family:var(--serif);font-size:18px;color:var(--accent);letter-spacing:.02em}
 .logo span{color:var(--muted);font-style:italic}
@@ -533,45 +533,29 @@ Return this exact JSON structure:
 // CLAUDE API
 // ═══════════════════════
 async function callClaude(prompt) {
-  const messages = [{ role: 'user', content: prompt }];
+  const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
 
-  for (let turn = 0; turn < 8; turn++) {
-    const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages
-      })
-    });
-
-    if (!resp.ok) {
-      const e = await resp.json().catch(()=>({}));
-      throw new Error(e.error?.message || `API ${resp.status}`);
-    }
-
-    const data = await resp.json();
-    if (!data.content) throw new Error(data.error?.message || 'Empty response from API');
-
-    // If stop_reason is end_turn or no tool_use blocks, extract text and return
-    const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
-    if (data.stop_reason === 'end_turn' || toolUseBlocks.length === 0) {
-      return data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
-    }
-
-    // Otherwise, feed tool results back and continue
-    messages.push({ role: 'assistant', content: data.content });
-    const toolResults = toolUseBlocks.map(b => ({
-      type: 'tool_result',
-      tool_use_id: b.id,
-      content: b.input?.query ? `Search results for: ${b.input.query}` : 'No results'
-    }));
-    messages.push({ role: 'user', content: toolResults });
+  if (!resp.ok) {
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `API ${resp.status}`);
   }
 
-  throw new Error('Too many tool call rounds');
+  const data = await resp.json();
+  if (!data.content) throw new Error(data.error?.message || 'Empty response from API');
+
+  // Extract all text blocks (web search tool results are handled server-side)
+  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+  if (!text) throw new Error('No text in API response — stop_reason: ' + data.stop_reason);
+  return text;
 }
 
 // ═══════════════════════
