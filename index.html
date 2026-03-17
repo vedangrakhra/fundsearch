@@ -594,68 +594,6 @@ async function callClaudeJSON(prompt) {
   return text;
 }
 
-Return this exact JSON structure:
-
-{
-  "fundName": "Full official fund name",
-  "issuer": "Asset management company name",
-  "sector": "One of: Clean Energy | Emerging Markets | Technology | Fixed Income | Multi-Asset | Healthcare | Real Estate | Commodities | Global Equity | Other",
-  "overview": "2-3 sentence summary of the fund strategy and thesis.",
-  "keyMetrics": [
-    {"label": "Launched", "value": "YYYY", "sub": "X years track record"},
-    {"label": "10yr Annualised", "value": "X.X%", "sub": "Share class / currency"},
-    {"label": "No. Holdings", "value": "~XX", "sub": "Concentration level"},
-    {"label": "Manager AUM", "value": "$XXB", "sub": "As of latest data"}
-  ],
-  "performance": [
-    {"year": "2024", "return": "+12.1%", "positive": true},
-    {"year": "2023", "return": "+23.9%", "positive": true},
-    {"year": "2022", "return": "-21.2%", "positive": false},
-    {"year": "2021", "return": "+21.9%", "positive": true},
-    {"year": "2020", "return": "+40.6%", "positive": true},
-    {"year": "2019", "return": "+38.2%", "positive": true},
-    {"year": "2018", "return": "-14.1%", "positive": false},
-    {"year": "2017", "return": "+10.2%", "positive": true}
-  ],
-  "performanceNote": "One sentence on share class and data source caveat.",
-  "topHoldings": [
-    {"name": "Actual Company Name e.g. Vestas Wind Systems", "sector": "Industry e.g. Wind Energy", "weight": "6.8%", "weightNum": 6.8},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "5.7%", "weightNum": 5.7},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.6%", "weightNum": 4.6},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.5%", "weightNum": 4.5},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.4%", "weightNum": 4.4},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.3%", "weightNum": 4.3},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.2%", "weightNum": 4.2},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.9%", "weightNum": 3.9},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.8%", "weightNum": 3.8},
-    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.7%", "weightNum": 3.7}
-  ],
-  "geoAllocation": [
-    {"region": "United States", "pct": "68.9%"},
-    {"region": "Europe", "pct": "23.4%"},
-    {"region": "Asia Pacific", "pct": "5.0%"},
-    {"region": "Other", "pct": "2.7%"}
-  ],
-  "geoNote": "One sentence on geographic concentration versus sector peers.",
-  "bullCase": [
-    "Specific reason 1 to invest with evidence or rationale",
-    "Specific reason 2",
-    "Specific reason 3",
-    "Specific reason 4",
-    "Specific reason 5"
-  ],
-  "bearCase": [
-    "Specific risk 1 with context",
-    "Specific risk 2",
-    "Specific risk 3",
-    "Specific risk 4",
-    "Specific risk 5"
-  ],
-  "managerOverview": "3-4 sentences covering: asset manager history and reputation, total AUM, named fund managers for this specific fund, their backgrounds and expertise.",
-  "investmentVerdict": "2-3 sentences on who this fund suits (time horizon, risk tolerance, goals) and who should be cautious. Be direct and specific."
-}`;
-}
-
 // ═══════════════════════
 // ROBUST JSON EXTRACTOR
 // ═══════════════════════
