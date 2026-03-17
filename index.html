@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
-
+a
 .header{border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;background:var(--bg);z-index:100}
 .logo{font-family:var(--serif);font-size:18px;color:var(--accent);letter-spacing:.02em}
 .logo span{color:var(--muted);font-style:italic}
@@ -579,10 +579,9 @@ async function callClaude(prompt) {
 // ═══════════════════════
 function extractFirstJSON(raw, isArray) {
   if (!raw) throw new Error('Empty API response');
-  // Strip citation markup that Claude's web search injects
-  let s = raw.replace(/<cite[^>]*>([\s\S]*?)<\/cite>/gi,'$1').replace(/<\/?cite[^>]*>/gi,'');
-  // Strip markdown fences
-  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // Strip citation markup then markdown fences
+  let s = raw.replace(/<cite[^>]*>([\s\S]*?)<\/cite>/gi,'$1').replace(/<\/?cite[^>]*>/gi,'')
+             .replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
   if (isArray) {
     const a = s.indexOf('['), b = s.lastIndexOf(']');
     if (a !== -1 && b !== -1) return s.slice(a, b+1);
