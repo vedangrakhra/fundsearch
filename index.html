@@ -459,15 +459,19 @@ async function generateReport(fundName) {
 function buildReportPrompt(fundName) {
   return `You are an expert fund research analyst. Research the investment fund: "${fundName}".
 
-Use web search to find accurate, current information.
+RESEARCH STEPS — do these in order:
+1. Search for "${fundName} top holdings" and "${fundName} factsheet" to find individual stock names
+2. Search Morningstar for "${fundName} portfolio" — this always lists top 10 holdings by name
+3. Search for "${fundName} geographic allocation" or "${fundName} country breakdown"
+4. Search for performance history and key metrics
 
-CRITICAL OUTPUT RULES — follow these exactly:
+CRITICAL OUTPUT RULES:
 1. Your response must begin with { and end with } — nothing before, nothing after
 2. No markdown, no code fences, no explanation text of any kind
 3. Do not say "I will" or "Let me" — just output the JSON directly
-4. Use "N/A" for any field where data is unavailable
-5. For topHoldings: search the fund's factsheet, official website, or Morningstar/Bloomberg for INDIVIDUAL STOCK NAMES (e.g. "Vestas Wind Systems", "Schneider Electric") — never use sector names like "Technology" as the holding name
-6. For geoAllocation: search the fund factsheet for geographic breakdown — this is always published
+4. Use "N/A" only as absolute last resort
+5. topHoldings MUST use real individual company/stock names (e.g. "Vestas Wind Systems", "Schneider Electric", "Eaton Corp") — NEVER use sector descriptions like "Clean Energy Technology" or "Renewable Energy" as the name field
+6. geoAllocation must use real percentage figures from the factsheet
 
 Return this exact JSON structure:
 
@@ -703,6 +707,13 @@ function renderReportHTML(d) {
     <div class="section-head"><span class="section-label">Investment Verdict</span></div>
     <div class="section-body"><div class="verdict-block">${e(d.investmentVerdict)}</div></div>
   </div>`:''}
+
+  <div style="margin-top:24px;padding:14px 18px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;letter-spacing:.02em">
+      <span style="color:var(--accent)">DISCLAIMER</span> &nbsp;·&nbsp;
+      This report is generated automatically using AI-powered web search and may contain incomplete, outdated, or inaccurate information. Data is sourced from publicly available sources and has not been independently verified. This is not financial advice. Always consult the fund's official factsheet, prospectus, and a qualified financial adviser before making investment decisions.
+    </p>
+  </div>
   `;
 }
 
