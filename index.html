@@ -381,8 +381,8 @@ Rules:
 function showDisambig(query, opts) {
   document.getElementById('disambigSub').textContent =
     `Found ${opts.length} funds matching "${query}" — select the one you meant:`;
-  document.getElementById('disambigOptions').innerHTML = opts.map(opt => `
-    <div class="fund-option" onclick="selectFund(${JSON.stringify(opt.fullName)})">
+  document.getElementById('disambigOptions').innerHTML = opts.map((opt, i) => `
+    <div class="fund-option" data-idx="${i}">
       <div>
         <div class="fo-name">${escHtml(opt.fullName)}</div>
         <div class="fo-meta">${escHtml(opt.issuer)} · ${escHtml(opt.category)}${opt.isin?' · '+opt.isin:''}</div>
@@ -390,6 +390,16 @@ function showDisambig(query, opts) {
       <div class="fo-badge">${opt.confidence==='high'?'Best match':'Possible'}</div>
     </div>
   `).join('');
+
+  // Store opts for click handler
+  window._disambigOpts = opts;
+  document.getElementById('disambigOptions').onclick = function(e) {
+    const el = e.target.closest('.fund-option');
+    if (!el) return;
+    const idx = +el.dataset.idx;
+    const opt = window._disambigOpts[idx];
+    if (opt) selectFund(opt.fullName);
+  };
   document.getElementById('disambigPanel').classList.add('visible');
 }
 
@@ -431,7 +441,11 @@ async function generateReport(fundName) {
   timings.forEach((t,i)=>setTimeout(()=>markStep(i), t));
 
   try {
-    const raw = await callClaude(buildReportPrompt(fundName));
+    // Step A: research in plain text
+    const research = await callClaude(buildResearchPrompt(fundName));
+
+    // Step B: convert research to strict JSON
+    const raw = await callClaudeJSON(buildJsonPrompt(fundName, research));
     const clean = extractFirstJSON(raw, false);
     const parsed = JSON.parse(clean);
 
@@ -456,22 +470,129 @@ async function generateReport(fundName) {
   }
 }
 
-function buildReportPrompt(fundName) {
-  return `You are an expert fund research analyst. Research the investment fund: "${fundName}".
+function buildResearchPrompt(fundName) {
+  return `Research the investment fund: "${fundName}".
 
-RESEARCH STEPS — do these in order:
-1. Search for "${fundName} top holdings" and "${fundName} factsheet" to find individual stock names
-2. Search Morningstar for "${fundName} portfolio" — this always lists top 10 holdings by name
-3. Search for "${fundName} geographic allocation" or "${fundName} country breakdown"
-4. Search for performance history and key metrics
+Use web search to find:
+1. Search "${fundName} top holdings" and "${fundName} Morningstar portfolio" — find the actual individual stock/company names in the portfolio (e.g. Vestas Wind Systems, Schneider Electric, Eaton Corp). Never use sector descriptions as holding names.
+2. Search "${fundName} factsheet" for geographic allocation percentages by country/region
+3. Annual performance returns for 2017-2024
+4. Key metrics: launch year, 10yr annualised return, number of holdings, manager AUM
+5. Fund strategy overview, manager background, bull/bear case
 
-CRITICAL OUTPUT RULES:
-1. Your response must begin with { and end with } — nothing before, nothing after
-2. No markdown, no code fences, no explanation text of any kind
-3. Do not say "I will" or "Let me" — just output the JSON directly
-4. Use "N/A" only as absolute last resort
-5. topHoldings MUST use real individual company/stock names (e.g. "Vestas Wind Systems", "Schneider Electric", "Eaton Corp") — NEVER use sector descriptions like "Clean Energy Technology" or "Renewable Energy" as the name field
-6. geoAllocation must use real percentage figures from the factsheet
+Write a thorough research summary covering all of the above with specific numbers and company names.`;
+}
+
+function buildJsonPrompt(fundName, research) {
+  return `Convert this fund research into the exact JSON format below. Use only the data from the research — do not invent data.
+
+RESEARCH:
+${research}
+
+OUTPUT RULES:
+- Output ONLY the JSON object, nothing else
+- No prose before or after
+- All string values must be properly escaped
+- Use "N/A" only if data is genuinely missing from the research above
+
+JSON FORMAT:
+{
+  "fundName": "Full official fund name",
+  "issuer": "Asset management company name",
+  "sector": "One of: Clean Energy | Emerging Markets | Technology | Fixed Income | Multi-Asset | Healthcare | Real Estate | Commodities | Global Equity | Other",
+  "overview": "2-3 sentence strategy summary",
+  "keyMetrics": [
+    {"label": "Launched", "value": "YYYY", "sub": "X years track record"},
+    {"label": "10yr Annualised", "value": "X.X%", "sub": "Share class / currency"},
+    {"label": "No. Holdings", "value": "~XX", "sub": "Concentration level"},
+    {"label": "Manager AUM", "value": "$XXB", "sub": "As of latest data"}
+  ],
+  "performance": [
+    {"year": "2024", "return": "+12.1%", "positive": true},
+    {"year": "2023", "return": "+8.5%", "positive": true},
+    {"year": "2022", "return": "-5.2%", "positive": false},
+    {"year": "2021", "return": "+15.3%", "positive": true},
+    {"year": "2020", "return": "+22.1%", "positive": true},
+    {"year": "2019", "return": "+18.4%", "positive": true},
+    {"year": "2018", "return": "-8.1%", "positive": false},
+    {"year": "2017", "return": "+12.0%", "positive": true}
+  ],
+  "performanceNote": "One sentence on share class and data source",
+  "topHoldings": [
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "6.8%", "weightNum": 6.8},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "5.7%", "weightNum": 5.7},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.6%", "weightNum": 4.6},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.5%", "weightNum": 4.5},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.4%", "weightNum": 4.4},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.3%", "weightNum": 4.3},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.2%", "weightNum": 4.2},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.9%", "weightNum": 3.9},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.8%", "weightNum": 3.8},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.7%", "weightNum": 3.7}
+  ],
+  "geoAllocation": [
+    {"region": "United States", "pct": "68.9%"},
+    {"region": "Europe", "pct": "23.4%"},
+    {"region": "Asia Pacific", "pct": "5.0%"},
+    {"region": "Other", "pct": "2.7%"}
+  ],
+  "geoNote": "One sentence on geographic concentration",
+  "bullCase": ["Reason 1","Reason 2","Reason 3","Reason 4","Reason 5"],
+  "bearCase": ["Risk 1","Risk 2","Risk 3","Risk 4","Risk 5"],
+  "managerOverview": "3-4 sentences on asset manager history, AUM, named fund managers and their backgrounds",
+  "investmentVerdict": "2-3 sentences on who this fund suits and who should be cautious"
+}`;
+}
+
+// ═══════════════════════
+// CLAUDE API (with web search)
+// ═══════════════════════
+async function callClaude(prompt) {
+  const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `API ${resp.status}`);
+  }
+  const data = await resp.json();
+  if (!data.content) throw new Error(data.error?.message || 'Empty response');
+  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+  if (!text) throw new Error('No text in response');
+  return text;
+}
+
+// ═══════════════════════
+// CLAUDE API (JSON only, no web search)
+// ═══════════════════════
+async function callClaudeJSON(prompt) {
+  const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      system: 'You are a JSON formatter. Output only a valid JSON object. No prose, no markdown, no explanation. Start with { and end with }.',
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `API ${resp.status}`);
+  }
+  const data = await resp.json();
+  if (!data.content) throw new Error(data.error?.message || 'Empty response');
+  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+  if (!text) throw new Error('No text in JSON response');
+  return text;
+}
 
 Return this exact JSON structure:
 
@@ -536,36 +657,6 @@ Return this exact JSON structure:
 }
 
 // ═══════════════════════
-// CLAUDE API
-// ═══════════════════════
-async function callClaude(prompt) {
-  const resp = await fetch('https://fundsearch.vedangrakhra.workers.dev/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: 'You are a financial data API. You output only raw JSON — no prose, no markdown, no preamble, no explanation before or after. Your entire response must be valid JSON starting with { or [.',
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-
-  if (!resp.ok) {
-    const e = await resp.json().catch(()=>({}));
-    throw new Error(e.error?.message || `API ${resp.status}`);
-  }
-
-  const data = await resp.json();
-  if (!data.content) throw new Error(data.error?.message || 'Empty response from API');
-
-  // Extract all text blocks (web search tool results are handled server-side)
-  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
-  if (!text) throw new Error('No text in API response — stop_reason: ' + data.stop_reason);
-  return text;
-}
-
-// ═══════════════════════
 // ROBUST JSON EXTRACTOR
 // ═══════════════════════
 function extractFirstJSON(raw, isArray) {
@@ -573,17 +664,31 @@ function extractFirstJSON(raw, isArray) {
   // Strip citation markup then markdown fences
   let s = raw.replace(/<cite[^>]*>([\s\S]*?)<\/cite>/gi,'$1').replace(/<\/?cite[^>]*>/gi,'')
              .replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+
   if (isArray) {
     const a = s.indexOf('['), b = s.lastIndexOf(']');
-    if (a !== -1 && b !== -1) return s.slice(a, b+1);
-    // Maybe it returned an object wrapping an array
+    if (a !== -1 && b !== -1) {
+      try { JSON.parse(s.slice(a, b+1)); return s.slice(a, b+1); } catch {}
+    }
     const o = s.indexOf('{'), oe = s.lastIndexOf('}');
     if (o !== -1 && oe !== -1) return s.slice(o, oe+1);
     throw new Error('No JSON array found. Got: ' + s.slice(0,150));
   } else {
     const o = s.indexOf('{'), oe = s.lastIndexOf('}');
-    if (o !== -1 && oe !== -1) return s.slice(o, oe+1);
-    throw new Error('No JSON object found. Got: ' + s.slice(0,150));
+    if (o === -1 || oe === -1) throw new Error('No JSON object found. Got: ' + s.slice(0,150));
+    const candidate = s.slice(o, oe+1);
+    // Validate — if it parses, great
+    try { JSON.parse(candidate); return candidate; } catch(e) {
+      // Try to recover: sometimes the model appends trailing text after the last }
+      // Walk backwards to find the real last }
+      for (let i = s.length - 1; i >= o; i--) {
+        if (s[i] === '}') {
+          const attempt = s.slice(o, i+1);
+          try { JSON.parse(attempt); return attempt; } catch {}
+        }
+      }
+      throw new Error('Could not parse JSON: ' + e.message);
+    }
   }
 }
 
