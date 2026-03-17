@@ -466,6 +466,8 @@ CRITICAL OUTPUT RULES — follow these exactly:
 2. No markdown, no code fences, no explanation text of any kind
 3. Do not say "I will" or "Let me" — just output the JSON directly
 4. Use "N/A" for any field where data is unavailable
+5. For topHoldings: search the fund's factsheet, official website, or Morningstar/Bloomberg for INDIVIDUAL STOCK NAMES (e.g. "Vestas Wind Systems", "Schneider Electric") — never use sector names like "Technology" as the holding name
+6. For geoAllocation: search the fund factsheet for geographic breakdown — this is always published
 
 Return this exact JSON structure:
 
@@ -492,16 +494,16 @@ Return this exact JSON structure:
   ],
   "performanceNote": "One sentence on share class and data source caveat.",
   "topHoldings": [
-    {"name": "Company Name", "sector": "Sector theme", "weight": "6.8%", "weightNum": 6.8},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "5.7%", "weightNum": 5.7},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "4.6%", "weightNum": 4.6},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "4.5%", "weightNum": 4.5},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "4.4%", "weightNum": 4.4},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "4.3%", "weightNum": 4.3},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "4.2%", "weightNum": 4.2},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "3.9%", "weightNum": 3.9},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "3.8%", "weightNum": 3.8},
-    {"name": "Company Name", "sector": "Sector theme", "weight": "3.7%", "weightNum": 3.7}
+    {"name": "Actual Company Name e.g. Vestas Wind Systems", "sector": "Industry e.g. Wind Energy", "weight": "6.8%", "weightNum": 6.8},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "5.7%", "weightNum": 5.7},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.6%", "weightNum": 4.6},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.5%", "weightNum": 4.5},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.4%", "weightNum": 4.4},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.3%", "weightNum": 4.3},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "4.2%", "weightNum": 4.2},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.9%", "weightNum": 3.9},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.8%", "weightNum": 3.8},
+    {"name": "Actual Company Name", "sector": "Industry", "weight": "3.7%", "weightNum": 3.7}
   ],
   "geoAllocation": [
     {"region": "United States", "pct": "68.9%"},
